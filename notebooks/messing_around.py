@@ -1,11 +1,11 @@
 # %%
-from polars.selectors import categorical
-from polars.testing import assert_frame_equal
-import polars as pl
-import duckdb
 import os
 import sys
+
+import duckdb
 import numpy as np
+import polars as pl
+from polars.testing import assert_frame_equal
 NOTEBOOK_DIR =  os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(NOTEBOOK_DIR)
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
@@ -17,7 +17,7 @@ lf.head().collect()
 
 # %%
 con = duckdb.connect()
-con.execute('SET memory_limit = "2GB"')
+con.execute('SET memory_limit = "2GB"') 
 con.execute('SET threads TO 4')
 
 lf =con.sql(f'SELECT * FROM read_parquet("{DATA_DIR}/raw/arcos2.pq")').pl(lazy=True)
@@ -33,7 +33,7 @@ lf.explode("readings", "readings2").filter((pl.col("readings").is_between(7.5, 2
 df1 = pl.read_parquet('out1.pq').sort('year', 'buyer_state')
 df2  = pl.read_parquet('out2.pq').sort('year', 'buyer_state')
 
-from polars.testing import assert_frame_equal
+
 assert_frame_equal(df1, df2)
 
 # %%
