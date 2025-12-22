@@ -6,7 +6,7 @@ import polars as pl
 import utils
 
 csv_file = f'{DATA_DIR}/raw/arcos-full.csv'
-initial_file_size = utils.get_file_size(csv_file)
+#initial_file_size = utils.get_file_size(csv_file)
 
 lf_temp = pl.scan_csv(f'{DATA_DIR}/raw/arcos-full.csv', 
 schema_overrides={
@@ -56,7 +56,7 @@ for file in remove_files:
     os.remove(file)
     print(f'Removed {file}')
 
-final_file_size = utils.get_file_size(outfile)
+#final_file_size = utils.get_file_size(outfile)
 
-print('Optimized datatypes and converted ARCOS to parquet.')
-print(f'Initial file size: {initial_file_size} GB. File size after optimizing: {final_file_size} GB')
+#print('Optimized datatypes and converted ARCOS to parquet.')
+#print(f'Initial file size: {initial_file_size} GB. File size after optimizing: {final_file_size} GB')
