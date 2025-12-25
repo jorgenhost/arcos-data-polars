@@ -1,12 +1,22 @@
+# %%
 import os
+import sys
+os.environ['POLARS_MAX_THREADS'] = '8'
+import polars.selectors as cs
 import duckdb
 import polars as pl
-import utils
-SRC_DIR =  os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SRC_DIR)
+from polars.testing import assert_frame_equal
+NOTEBOOK_DIR =  os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(NOTEBOOK_DIR)
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
+sys.path.append(PROJECT_ROOT)
 
-# Schema
+# %%
+con = duckdb.connect(f'{DATA_DIR}/raw/databaz.db')
+con.execute('SET memory_limit = "8GB"') 
+con.execute('SET threads TO 8')
+
+# %%
 SCHEMA = {
     "reporter_bus_act": pl.Categorical,
         "reporter_name": pl.Categorical,
@@ -24,6 +34,7 @@ SCHEMA = {
         "reporter_family": pl.Categorical,
         "combined_labeler_name": pl.Categorical,
         "order_form_no": pl.String,
+        "dosage_unit": pl.Float64,
         'buyer_city': pl.Categorical,
         "transaction_code": pl.Categorical,
         "buyer_zip": pl.Int32,
@@ -38,17 +49,7 @@ SCHEMA = {
         "transaction_id": pl.Float64
 }
 
-
-csv_file = f'{DATA_DIR}/raw/arcos-full.csv'
-gzip_csv_file = f'{DATA_DIR}/raw/arcos-full.csv.gz'
-initial_file_size = utils.get_file_size(csv_file)
-
-
-con = duckdb.connect(f'{DATA_DIR}/raw/databaz.db')
-
-con.execute('SET memory_limit = "8GB"') 
-con.execute('SET threads TO 8')
-
+#  %%
 table = (
     con.sql(
         f"""
@@ -63,10 +64,12 @@ table = (
         """
     )
 )
-temp_file = f'{DATA_DIR}/raw/temp.pq'
-table.write_parquet(temp_file)
+table.write_parquet(f'{DATA_DIR}/raw/temp.pq')
 
-lf = (pl.scan_parquet(temp_file)
+
+# %%
+
+lf = (pl.scan_parquet(f'{DATA_DIR}/raw/temp.pq')
         .cast(SCHEMA)
         .with_columns(
             reporter_dea_no = pl.when(pl.col("reporter_dea_no").is_not_null()).then(pl.col("reporter_dea_no").hash()),
@@ -79,17 +82,8 @@ lf = (pl.scan_parquet(temp_file)
         )
 
 )
-outfile = f'{DATA_DIR}/raw/arcos.pq'
-
-lf.sink_parquet(outfile, engine='streaming')
-
-remove_files = [gzip_csv_file, csv_file, temp_file]
-
-for file in remove_files:
-    os.remove(file)
-    print(f'Removed {file}')
-
-final_file_size = utils.get_file_size(outfile)
-
-print('Optimized datatypes and converted ARCOS to parquet.')
-print(f'Initial file size: {initial_file_size} GB. File size after optimizing: {final_file_size} GB')
+lf.sink_parquet(f'{DATA_DIR}/raw/arcos.pq')
+# %%
+lf = pl.scan_parquet(f'{DATA_DIR}/raw/arcos.pq')
+lf.head().collect()
+# %%
